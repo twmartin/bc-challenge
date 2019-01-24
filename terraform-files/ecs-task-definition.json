@@ -1,0 +1,24 @@
+[
+  {
+    "name": "bc-challenge-nginx",
+    "image": "tmart2011/bc-challenge-nginx",
+    "essential": true,
+    "cpu": 256,
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/bc-challenge",
+        "awslogs-region": "us-east-2",
+        "awslogs-stream-prefix": "ecs"
+      }
+    },
+    "memoryReservation": 512,
+    "portMappings": [
+      {
+        "containerPort": 80,
+        "hostPort": 80,
+        "protocol": "tcp"
+      }
+    ]
+  }
+]
