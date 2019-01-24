@@ -7,7 +7,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-2"
+  region = "${var.aws_region}"
 }
 
 resource "aws_ecs_cluster" "ecs_bc_challenge" {
@@ -80,7 +80,7 @@ resource "aws_ecs_service" "ecs_bc_challenge_service" {
   }
   network_configuration {
     assign_public_ip = true
-    subnets = ["subnet-02ae0a30ba024518d", "subnet-02d2e87d860172704"]
+    subnets = "${var.subnets}"
     security_groups = ["${aws_security_group.bc_challenge_service_sg.id}"]
   }
 }
@@ -89,12 +89,9 @@ resource "aws_alb_target_group" "bc_challenge_target_group" {
   name = "bc-challenge-target-group"
   port = 80
   protocol = "HTTP"
-  vpc_id = "vpc-07f2e5ff20c7e1f78"
+  vpc_id = "${var.vpc}"
   target_type = "ip"
   deregistration_delay = 5
-  lifecycle {
-    create_before_destroy = true
-  }
   depends_on = [
     "aws_alb.bc_challenge_alb",
   ]
@@ -105,14 +102,14 @@ resource "aws_alb" "bc_challenge_alb" {
   internal = false
   load_balancer_type = "application"
   security_groups = ["${aws_security_group.bc_challenge_alb_sg.id}"]
-  subnets = ["subnet-02ae0a30ba024518d", "subnet-02d2e87d860172704"]
+  subnets = "${var.subnets}"
 }
 
 resource "aws_alb_listener" "bc_challenge_alb_listener_443" {
   load_balancer_arn = "${aws_alb.bc_challenge_alb.arn}"
   port = "443"
   protocol = "HTTPS"
-  certificate_arn = "arn:aws:acm:us-east-2:872676129263:certificate/9f1faa02-6609-450f-ab55-ae17fced7edc"
+  certificate_arn = "${var.acm_certificate_arn}"
   ssl_policy = "ELBSecurityPolicy-TLS-1-2-2017-01"
   default_action {
     type = "forward"
@@ -137,7 +134,7 @@ resource "aws_alb_listener" "bc_challenge_alb_listener_80" {
 resource "aws_security_group" "bc_challenge_alb_sg" {
   name = "bc-challenge-alb-sg"
   description = "Allow all HTTP traffic through bc-challenge-alb"
-  vpc_id = "vpc-07f2e5ff20c7e1f78"
+  vpc_id = "${var.vpc}"
   ingress {
     from_port = 80
     to_port = 80
@@ -164,7 +161,7 @@ resource "aws_security_group" "bc_challenge_alb_sg" {
 resource "aws_security_group" "bc_challenge_service_sg" {
   name = "bc-challenge-service-sg"
   description = "Allow all HTTP traffic from bc-challenge-alb"
-  vpc_id = "vpc-07f2e5ff20c7e1f78"
+  vpc_id = "${var.vpc}"
   ingress {
     from_port = 80
     to_port = 80
@@ -188,8 +185,8 @@ resource "aws_cloudwatch_log_group" "bc_challenge_log_group" {
 }
 
 resource "aws_route53_record" "bc_challenge_route53_record" {
-  zone_id = "ZWQQSKOQD4SU1"
-  name = "bc-challenge.twmartin.codes."
+  zone_id = "${var.route53_hosted_zone_id}"
+  name = "${var.route53_a_record_name}"
   type = "A"
   alias {
     name = "${aws_alb.bc_challenge_alb.dns_name}"
